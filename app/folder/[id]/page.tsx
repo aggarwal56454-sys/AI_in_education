@@ -4,6 +4,7 @@ import Link from 'next/link';
 import EmbeddedChat from '@/components/EmbeddedChat';
 
 const BionicText = ({ text }: { text: string }) => {
+  if (!text) return null;
   return (
     <>
       {text.split(' ').map((word, i) => {
@@ -67,7 +68,6 @@ export default function FolderView({ params }: { params: Promise<{ id: string }>
   const [isDyslexic, setIsDyslexic] = useState(false);
   const [isBionic, setIsBionic] = useState(false);
 
-  // SPACED REPETITION STATE
   const [leitnerData, setLeitnerData] = useState<Record<string, { box: number, nextReview: number }>>({});
   
   useEffect(() => {
@@ -183,8 +183,11 @@ export default function FolderView({ params }: { params: Promise<{ id: string }>
         const reader = new FileReader(); reader.onload = () => resolve((reader.result as string).split(',')[1]); reader.readAsDataURL(file);
       });
       const formData = new FormData(); formData.append('file', file);
-      const pythonRes = await fetch('http://localhost:8000/extract-pdf', { method: 'POST', body: formData });
+      
+      const backendUrl = process.env.NEXT_PUBLIC_RENDER_URL || 'YOUR_RENDER_URL_HERE';
+      const pythonRes = await fetch(`${backendUrl}/extract-pdf`, { method: 'POST', body: formData });
       const pythonData = await pythonRes.json();
+      
       const nextRes = await fetch('/api/documents', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ folderId, title: file.name, content: pythonData.text || "", pdfBase64, language: targetLanguage })
@@ -226,7 +229,6 @@ export default function FolderView({ params }: { params: Promise<{ id: string }>
     const newLeitner = { ...leitnerData };
     const now = Date.now();
     
-    // Spaced Repetition Grading Logic
     quiz.forEach((q, i) => {
       const isCorrect = selectedAnswers[i] === q.answer;
       if (isCorrect) score++;
@@ -238,7 +240,7 @@ export default function FolderView({ params }: { params: Promise<{ id: string }>
           const daysToAdd = nextBox === 1 ? 1 : nextBox === 2 ? 3 : nextBox === 3 ? 7 : nextBox === 4 ? 14 : 30;
           newLeitner[q.conceptId] = { box: nextBox, nextReview: now + (daysToAdd * 86400000) };
         } else {
-          newLeitner[q.conceptId] = { box: 0, nextReview: now }; // Back to start, review immediately
+          newLeitner[q.conceptId] = { box: 0, nextReview: now };
         }
       }
     });
@@ -264,7 +266,6 @@ export default function FolderView({ params }: { params: Promise<{ id: string }>
   const selectedDoc = folder.documents?.find((d: any) => d.id === quizConfig.documentId);
   const availableConcepts = selectedDoc ? selectedDoc.concepts : folder.documents?.flatMap((d:any)=>d.concepts) || [];
   
-  // Calculate due concepts for Spaced Repetition
   const dueConcepts = availableConcepts.filter((c: any) => {
     const data = leitnerData[c.id];
     return !data || data.nextReview <= Date.now();
@@ -360,7 +361,6 @@ export default function FolderView({ params }: { params: Promise<{ id: string }>
               </div>
             )}
 
-            {/* UPLOAD & LIBRARY RETAINED EXACTLY AS IS */}
             {activeTab === 'upload' && (
               <div className="max-w-3xl mx-auto w-full no-print">
                 <h1 className="text-4xl font-bold text-stone-800 mb-8 tracking-tight">Add Material</h1>
