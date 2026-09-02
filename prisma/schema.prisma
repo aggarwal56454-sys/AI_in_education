@@ -1,4 +1,46 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+}
+
+model Folder {
+  id        String        @id @default(cuid())
+  name      String
+  createdAt DateTime      @default(now())
+  documents Document[]
+  quizzes   QuizHistory[]
+}
+
+model Document {
+  id        String    @id @default(cuid())
+  title     String
+  content   String?
+  folderId  String
+  folder    Folder    @relation(fields: [folderId], references: [id], onDelete: Cascade)
+  concepts  Concept[]
+  createdAt DateTime  @default(now())
+}
+
+model Concept {
+  id         String   @id @default(cuid())
+  name       String
+  summary    String
+  documentId String
+  document   Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  createdAt  DateTime @default(now())
+}
+
+model QuizHistory {
+  id        String   @id @default(cuid())
+  type      String
+  score     Int
+  total     Int
+  quizData  String
+  folderId  String
+  folder    Folder   @relation(fields: [folderId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
 }
